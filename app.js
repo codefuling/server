@@ -7,7 +7,6 @@
 // 4. controllers: DB 접근 및 비지니스 로직 작성
 // 5. routers: 요청한 경로에 맞는 controller를 실행하는 라우터 작성
 // 6. utils: 중복되는 코드를 하나의 유틸 함수로 묶기
-
 import express from "express";
 import connect from "./connect/connect.js";
 
@@ -17,11 +16,21 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import rootRouter from "./routes/rootRouter.js";
 
-connect();
+// dotenv사용
+// 다음과 같이 애플리케이션 기본 파일에서 최대한 빨리 가져온다.
+import dotenv from 'dotenv';
+dotenv.config()
 
+// express 실행
 const app = express();
 const port = 8000;
 
+// passport
+import passport from "passport";
+import { initializePassport } from "./auth/auth.js"
+
+// MongoDB 연결
+connect();
 
 // app.use()는 미들웨어로서,
 // 어떤 요청이든 지정된 로직보다 먼저 작업한다. 즉, 전처리이다.
@@ -35,12 +44,17 @@ app.use((req, res, next) => {
   next()
 })
 
+// extended true면 qs모듈을 사용하여 쿼리스트링으로 인식, false
 app.use(express.urlencoded({extended : false}));
 app.use(cors({
   origin : '*',
   method : ['GET', 'POST', 'DELETE', 'PUT'],
   credentials : true,
 }));
+
+// passport 미들웨어 등록
+app.use(passport.initialize())
+initializePassport()
 
 // 부모 경로 (/products) 요청 시, 모듈화 해놓은 router로 이동시키기
 app.use("/", rootRouter);

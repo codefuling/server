@@ -1,7 +1,16 @@
 import { getCurrentTime } from "../../utils/utils.js";
 import Todo from "../../models/todoSchema.js"; 
+import passport from 'passport';
 
 // todo 
+const testTodo = async (req, res, next) => {
+    passport.authenticate('local', (authError, user, info) => {
+        console.log(user)
+    });
+    // res.json(await Todo.find().sort({ _id: -1 }))
+}
+
+
 const selectTodo = async (req, res) => {
     res.json(await Todo.find().sort({ _id: -1 }))
 }
@@ -33,5 +42,5 @@ const deleteTodo = async (req, res) => {
 };
 
 export { 
-    selectTodo, insertTodo, modifyTodo, deleteTodo
+    selectTodo, insertTodo, modifyTodo, deleteTodo, testTodo
 };
