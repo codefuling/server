@@ -12,9 +12,10 @@ const SECRET_KEY = process.env.SECRET_KEY;
 // user 
 const loginUser = async (req, res) => {
     // 회원을 찾는다
-    const user = await User.findOne({email : req.body.email})
+    // .lean() 메서드로 자바스크립트 객체로 변환한다.
+    const findUser = await User.findOne({email : req.body.email}).lean();
     // 만약 유저가 없다면
-    if(!user){
+    if(!findUser){
         // 사용자가 잘못된 인증 요청한 경우 401 코드
         return res.status(401).json({
             registerSuccess : false,
@@ -22,7 +23,7 @@ const loginUser = async (req, res) => {
         })
         
     }else{
-        const passwordMatch = req.body.password === user.password;
+        const passwordMatch = req.body.password === findUser.password;
           if(!passwordMatch){
             return res.status(401).json({
                 registerSuccess : false,
@@ -31,13 +32,12 @@ const loginUser = async (req, res) => {
         }
 
         //민감한 정보 제거, 필요한 정보만 담는다
-        const { ...userDatas } = user;
-        const { password, ...others } = userDatas._doc;
-        console.log(others)
+        const { password, ...user } = findUser;
+        console.log(user)
 
         // 비밀번호를 제외한 나머지 정보만 화면으로 보낸다. 
         return res.status(200).json({
-            user: others, // 최초 로그인
+            user, // 최초 로그인
             registerSuccess : true, // 상태 발급
             message : "로그인 되었습니다." // 메세지
         })
@@ -46,9 +46,9 @@ const loginUser = async (req, res) => {
 
 const registerUser = async (req, res) => {
     // 등록 전에 회원인지 확인한다.
-    let user = await User.findOne({email : req.body.email})
+    const findUser = await User.findOne({email : req.body.email}).lean();
     // 만약 유저가 있다면, 회원가입을 할 수 없다.
-    if(user){
+    if(findUser){
         // 중복 회원가입 요청이 발생했을 때 409 코드
         return res.status(409).json({
             registerSuccess : false,
@@ -83,50 +83,43 @@ const deleteUser = async (req, res) => {
     const user = await User.findOne({ email: req.body.email });
     const userDeleted = await User.deleteOne(user);
     console.log(userDeleted)
-
 };
-
 
 const passportLogin = async (req, res, next) => {
     try {
-		// 아까 local로 등록한 인증과정 실행
-        passport.authenticate('local', (error, user, info) => {
-        // 인증이 실패했거나 유저 데이터가 없다면 에러 발생
-        if (error || !user) {
-            res.status(400).json({ message: info.reason });
-            return;
-        }
-        // user데이터를 통해 로그인 진행
-        req.login(user, { session: false }, async (loginError) => {
-            if (loginError) {
-            res.send(loginError);
-            return;
+            passport.authenticate('local', (error, authenticatedUser, info) => {
+            // 인증이 실패했거나 유저 데이터가 없다면 에러 발생
+            if (error || !authenticatedUser) {
+                res.status(400).json({ message: info.message });
+                return;
             }
-            // 클라이언트에게 JWT생성 후 반환
-            const token = jwt.sign(
-                { 
-                    email: user.email, 
-                    issuer : 'sehwan' 
-                },
-                SECRET_KEY,
-                {
-                    expiresIn: '24h'    // 유효 시간 24시간 평균적으로 5분
+            // user데이터를 통해 로그인 진행
+            req.login(authenticatedUser, { session: false }, async (loginError) => {
+                if (loginError) {
+                    return res.send(loginError);
                 }
-            );
-            
-            // 유저와 토큰을 발급
-            const loginUser = await User.findOne({ email: user.email });
-            console.log(loginUser)
-            // 민감한 정보 제거
-            // 최초 유저정보 전달
-            const {password ,...others} = loginUser;
-            res.json({ 
-                ...others._doc,
-                token: token 
+            // 클라이언트에게 JWT생성 후 반환
+                const token = jwt.sign(
+                    { 
+                        email: authenticatedUser.email, 
+                        issuer : 'sehwan' 
+                    },
+                    SECRET_KEY,
+                    {
+                        expiresIn: '24h'    // 유효 시간 24시간 평균적으로 5분
+                    }
+                );
+                console.log('authenticatedUser', authenticatedUser)
+                // user의 민감한 정보 제거
+                const {password, ...user} = authenticatedUser;
+            // 토큰과 회원정보 반환
+                res.status(200).json({
+                    user, 
+                    token,
+                })
             });
-
-        });
         })(req, res, next);
+
     } catch (error) {
         console.error(error);
         next(error);
@@ -137,11 +130,11 @@ const passportLogin = async (req, res, next) => {
 const authLocation = async (req, res, next) => {
     try {
     // 인가가 완료된 유저 정보는 req.user에 담긴다.
-      console.log(authLocation, req.user)
-      const {password ,...others} = req.user;
+      const jwtAuthenticatedUser = req.user;
+      const {password, ...user} = jwtAuthenticatedUser;
             res.json({ 
-            message : '자동 로그인 성공',
-            ...others._doc,
+                message : '자동 로그인 성공',
+                user
             });
     } catch (error) {
       console.error(error);
