@@ -11,7 +11,7 @@ userRouter.delete("/delete", deleteUser)
 
 // passport 추가
 // passport 라우팅
-userRouter.post("/passportLogin", passportLogin)
+userRouter.post("/passportLogin", passport.authenticate('local', { session: false }), passportLogin)
 
 // 추가로 인증 후 접근해야하는 fetch주소 마다 authenticateLocal()을 심는다
 userRouter.post("/auth", passport.authenticate('jwt', { session: false }), authLocation )

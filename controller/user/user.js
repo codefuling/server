@@ -86,8 +86,12 @@ const deleteUser = async (req, res) => {
 };
 
 const passportLogin = async (req, res, next) => {
-    try {
-            passport.authenticate('local', (error, authenticatedUser, info) => {
+    try {   
+            const error = req.error;
+            const authenticatedUser = req.user;
+            const info = req.info;
+            console.log('passportLogin', authenticatedUser, info)
+            
             // 인증이 실패했거나 유저 데이터가 없다면 에러 발생
             if (error || !authenticatedUser) {
                 res.status(400).json({ message: info.message });
@@ -109,7 +113,9 @@ const passportLogin = async (req, res, next) => {
                         expiresIn: '24h'    // 유효 시간 24시간 평균적으로 5분
                     }
                 );
-                console.log('authenticatedUser', authenticatedUser)
+                
+                console.log('authenticatedUser', authenticatedUser);
+
                 // user의 민감한 정보 제거
                 const {password, ...user} = authenticatedUser;
             // 토큰과 회원정보 반환
@@ -118,7 +124,6 @@ const passportLogin = async (req, res, next) => {
                     token,
                 })
             });
-        })(req, res, next);
 
     } catch (error) {
         console.error(error);

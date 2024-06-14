@@ -21,14 +21,14 @@ const passportVerify = async (email, password, done) => {
     const user = await User.findOne({ email: email }).lean();
 		// 검색된 유저 데이터가 없다면 에러 표시
     if (!user) {
-      return done(null, false, { message: '존재하지 않는 사용자 입니다.' });
+      return done(null, false, { message: '존재하지 않는 사용자입니다.' });
     }
 		// 검색된 유저 데이터가 있다면 유저 해쉬된 비밀번호 비교 
     const passwordMatch = password === user.password;
 
 		// 비밀번호가 다를경우 에러 표시
     if (!passwordMatch) {
-      return done(null, false, { message: '올바르지 않은 비밀번호 입니다.' });
+      return done(null, false, { message: '올바르지 않은 비밀번호입니다.' });
     }
     // 비밀번호가 같다면 유저 데이터 객체 전송
     return done(null, user);
@@ -57,10 +57,9 @@ const JWTVerify = async (jwtPayload, done) => {
     if (!user) {
       done(null, false, { reason: '올바르지 않은 인증정보 입니다.' });
     }
-
     // 유저 데이터가 있다면 유저 데이터 객체 전송
     return done(null, user);
-
+    
   } catch (error) {
     console.error(error);
     done(error);
