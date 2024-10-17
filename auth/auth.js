@@ -181,9 +181,6 @@ const naverVerify =  async (accessToken, refreshToken, profile, done) => {
   }
 };
 
-
-
-
 const initializePassport = () => {
   passport.use('local', new LocalStrategy(passportConfig, passportVerify));
   passport.use('jwt', new JWTStrategy(JWTConfig, JWTVerify));

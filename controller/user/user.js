@@ -1,3 +1,4 @@
+import path from "path";
 import User from "../../models/userSchema.js"; 
 
 // user 
@@ -76,6 +77,16 @@ const deleteUser = async (req, res) => {
     console.log(userDeleted)
 };
 
+// 프로필 변경 라우터
+const updatePicture = async (req, res) => {
+    const uploadFolder = "uploads/profiles";
+    const relativePath = path.join(uploadFolder, req.file.filename).replace(/\\/g, '/');
+    res.status(200).json({
+        message : "업로드 완료",
+        filePath: `/${relativePath}`
+    });
+}
+
 export { 
-    loginUser, registerUser, updateUser, deleteUser
+    loginUser, registerUser, updateUser, deleteUser, updatePicture
 };

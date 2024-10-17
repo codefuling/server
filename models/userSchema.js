@@ -7,6 +7,7 @@ const userSchema = new Schema({
     name: { type: String },
     age : { type : Number, default : 0 },
     phone : { type : String, default : "000-0000-0000"},
+    picture : { type: String, default : "none_picture.jpg" },
     address: { type: String },
     token : { type: String }, // refresh 토큰을 저장한다.
     createdAt: { type: String, default: getCurrentTime },

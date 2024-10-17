@@ -25,6 +25,16 @@ dotenv.config()
 const app = express();
 const port = 8000;
 
+// 이미지 등록
+import multer from 'multer';
+import fs from 'fs';
+import path from "path";
+import { fileURLToPath } from 'url';
+
+// ES Modules에서 __dirname 설정
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 // passport
 import passport from "passport";
 import { initializePassport } from "./auth/auth.js"
@@ -61,6 +71,43 @@ app.use(session({
   resave: false,
   saveUninitialized: true
 }))
+
+
+// 파일 이름 중복 처리 함수
+const uploadFolder = "uploads/profiles";
+const getUniqueFileName = (originalName, uploadFolder) => {
+  const ext = path.extname(originalName); // 확장자 추출
+  const baseName = path.basename(originalName, ext); // 확장자를 제외한 파일명 추출
+  let uniqueName = originalName; // 기본적으로는 원본 파일명 사용
+  let counter = 1;
+
+  // 같은 이름의 파일이 존재하는지 확인하고, 있다면 숫자를 추가
+  while (fs.existsSync(path.join(uploadFolder, uniqueName))) {
+    uniqueName = `${baseName}(${counter})${ext}`; // 숫자를 추가한 파일명
+    counter++; // 숫자 증가
+  }
+
+  return uniqueName;
+};
+
+// Multer 미들웨어 (이미지 업로드)
+const upload = multer({
+  storage: multer.diskStorage({
+    destination(req, file, done) {
+      done(null, path.join(__dirname, "./uploads/profiles")); // 프로필 이미지 저장 경로
+    },
+    filename(req, file, done) {
+      const uniqueFileName = getUniqueFileName(file.originalname, uploadFolder);
+      done(null, uniqueFileName); // 파일 이름 설정
+    },
+  }),
+});
+
+const uploadMiddleware = upload.single('picture');
+// 정적 파일 제공 (서버의 uploads 폴더를 공개)
+// "/uploads" 경로로 접근하는 요청이 실제 파일 시스템에서 uploads 디렉토리와 연결
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use(uploadMiddleware);
 
 // passport 미들웨어 등록
 app.use(passport.initialize())

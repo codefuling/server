@@ -1,7 +1,7 @@
 // passport 준비
 import jwt from "jsonwebtoken";
-import dotenv from 'dotenv'
-import passport from "passport";
+import dotenv from 'dotenv';
+
 dotenv.config();
 const SECRET_KEY = process.env.SECRET_KEY;
 
@@ -22,7 +22,7 @@ const localStrategy = async (req, res, next) => {
                     return res.send(loginError);
                 }
             // 클라이언트에게 JWT생성 후 반환
-                const token = jwt.sign(
+                const accessToken = jwt.sign(
                     { 
                         email: authenticatedUser.email, 
                         issuer : 'sehwan' 
@@ -40,7 +40,7 @@ const localStrategy = async (req, res, next) => {
             // 토큰과 회원정보 반환
                 res.status(200).json({
                     user, 
-                    token,
+                    accessToken,
                 })
             });
 
@@ -67,47 +67,47 @@ const jwtStrategy = async (req, res, next) => {
 };
 
 
-// 구글을 이용해서 인증받는 라우팅
-const googleStrategy = async (req, res, next) => {
-    try {
-    // 인가가 완료된 유저 정보는 req.user에 담긴다.
-        const googleAuthenticatedUser = req.user;
-        console.log(googleAuthenticatedUser)
+// // 구글을 이용해서 인증받는 라우팅
+// const googleStrategy = async (req, res, next) => {
+//     try {
+//     // 인가가 완료된 유저 정보는 req.user에 담긴다.
+//         const googleAuthenticatedUser = req.user;
+//         console.log(googleAuthenticatedUser)
 
-    } catch (error) {
-        console.error(error);
-        next(error);
-    }
-}
-
-
-
-// 카카오를 이용해서 인증받는 라우팅
-const kakaoStrategy = async (req, res, next) => {
-    try {
-    // 인가가 완료된 유저 정보는 req.user에 담긴다.
-        const kakaoAuthenticatedUser = req.user;
-        console.log(kakaoAuthenticatedUser)
-
-    } catch (error) {
-        console.error(error);
-        next(error);
-    }
-}
+//     } catch (error) {
+//         console.error(error);
+//         next(error);
+//     }
+// }
 
 
-// 네이버를 이용해서 인증받는 라우팅
-const naverStrategy = async (req, res, next) => {
-    try {
-    // 인가가 완료된 유저 정보는 req.user에 담긴다.
-        const naverAuthenticatedUser = req.user;
-        console.log(naverAuthenticatedUser)
 
-    } catch (error) {
-        console.error(error);
-        next(error);
-    }
-}
+// // 카카오를 이용해서 인증받는 라우팅
+// const kakaoStrategy = async (req, res, next) => {
+//     try {
+//     // 인가가 완료된 유저 정보는 req.user에 담긴다.
+//         const kakaoAuthenticatedUser = req.user;
+//         console.log(kakaoAuthenticatedUser)
+
+//     } catch (error) {
+//         console.error(error);
+//         next(error);
+//     }
+// }
 
 
-export { localStrategy, jwtStrategy, googleStrategy, kakaoStrategy, naverStrategy}
+// // 네이버를 이용해서 인증받는 라우팅
+// const naverStrategy = async (req, res, next) => {
+//     try {
+//     // 인가가 완료된 유저 정보는 req.user에 담긴다.
+//         const naverAuthenticatedUser = req.user;
+//         console.log(naverAuthenticatedUser)
+
+//     } catch (error) {
+//         console.error(error);
+//         next(error);
+//     }
+// }
+
+
+export { localStrategy, jwtStrategy }

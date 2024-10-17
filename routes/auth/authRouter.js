@@ -1,6 +1,6 @@
 import express from "express";
 import passport from "passport";
-import { googleStrategy, jwtStrategy, kakaoStrategy, localStrategy, naverStrategy } from "../../controller/auth/auth.js";
+import { jwtStrategy, localStrategy } from "../../controller/auth/auth.js";
 
 const authRouter = express.Router();
 const clientUrl = "http://localhost:3000";
@@ -14,14 +14,14 @@ authRouter.post("/local", passport.authenticate('local', { session: false }), lo
 authRouter.post("/jwt", passport.authenticate('jwt', { session: false }), jwtStrategy)
 
 // 구글 로그인
-authRouter.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }), googleStrategy);
+authRouter.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 authRouter.get('/google/callback', passport.authenticate('google', { failureRedirect: clientUrl }), (req, res) => {
     console.log("구글 로그인 후 유저 정보", req.user)
     return res.redirect(clientUrl + "/my");
 });
 
 // 카카오 로그인
-authRouter.get("/kakao", passport.authenticate('kakao', { session: false }), kakaoStrategy)
+authRouter.get("/kakao", passport.authenticate('kakao', { session: false }))
 authRouter.get('/kakao/callback', passport.authenticate('kakao', { failureRedirect: clientUrl }), (req, res) => {
     console.log("카카오 로그인 후 유저 정보", req.user)
     return res.redirect(clientUrl + "/my");
@@ -29,7 +29,7 @@ authRouter.get('/kakao/callback', passport.authenticate('kakao', { failureRedire
 
 // 네이버 로그인
 // 카카오 로그인
-authRouter.get("/naver", passport.authenticate('naver', { authType: 'reprompt' }), naverStrategy)
+authRouter.get("/naver", passport.authenticate('naver', { authType: 'reprompt' }))
 authRouter.get('/naver/callback', passport.authenticate('naver', { failureRedirect: clientUrl }), (req, res) => {
     console.log("네이버 로그인 후 유저 정보", req.user)
     return res.redirect(clientUrl + "/my");
@@ -58,9 +58,19 @@ authRouter.get('/profile', (req, res) => {
 // 로그아웃 처리
 authRouter.get('/logout', (req, res) => {
     req.logout((err) => {
-        if (err) { return next(err); }
-        res.redirect(clientUrl);
-    });
+        if (err) {
+          return res.status(500).send('로그아웃 실패');
+        }
+        // 세션 삭제
+        req.session.destroy((err) => {
+          if (err) {
+            return res.status(500).send('세션 삭제 실패');
+          }
+          // 로그아웃 성공 시 클라이언트에 성공 메시지 전송
+          res.clearCookie('connect.sid', { path: '/' });
+          res.status(200).send('로그아웃 성공');
+        });
+      });
 });
 
 export default authRouter;
