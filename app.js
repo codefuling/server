@@ -25,6 +25,7 @@ dotenv.config()
 const app = express();
 const port = 8000;
 
+
 // 이미지 등록
 import multer from 'multer';
 import fs from 'fs';
@@ -35,12 +36,20 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+
 // passport
 import passport from "passport";
 import { initializePassport } from "./auth/auth.js"
 
 // 구글 로그인시 세션 필요
 import session from "express-session";
+
+// 쪽지 기능
+import { createRequire } from 'module';
+import Message from "./models/messageSchema.js";
+import User from "./models/userSchema.js";
+const require = createRequire(import.meta.url); // ESM에서 require 사용 가능하게 만듦
+const WebSocket = require('ws');
 
 // MongoDB 연결
 connect();
@@ -126,4 +135,78 @@ initializePassport()
 // 부모 경로 (/products) 요청 시, 모듈화 해놓은 router로 이동시키기
 app.use("/", rootRouter);
 
-app.listen(port);
+const server = app.listen(port);
+
+// 쪽지 기능
+const wss = new WebSocket.Server({ server });
+wss.on('connection', async (ws) => {
+  console.log('New client connected');
+
+  // 클라이언트 접속 시, 기존 메시지 불러오기
+  try {
+    const messages = await Message.find({})
+      .populate('from', 'email picture')  // from 필드의 사용자 이메일 및 사진 가져오기
+      .populate('to', 'email picture')    // to 필드의 사용자 이메일 및 사진 가져오기
+
+    // 기존 메시지들을 클라이언트로 전송
+    messages.forEach((msg) => {
+      const fromUser = {
+        email: msg.from.email,
+        picture: msg.from.picture
+      };
+      
+      ws.send(JSON.stringify({
+        from: fromUser,
+        message: msg.message
+      }));
+    });
+
+  } catch (error) {
+    console.error('Error fetching messages from MongoDB:', error);
+  }
+
+  ws.on('message', async (message) => {
+    const messageStr = message.toString(); // 버퍼 데이터를 문자열로 변환
+    console.log('Received message:', messageStr);
+
+    // JSON으로 파싱 후 처리
+    try {
+      const data = JSON.parse(messageStr);
+      console.log('Parsed message:', data);
+
+      const from = await User.findOne({email : data.from }).populate("snsId");
+      const to = await User.findOne({email : data.to }).populate("snsId");
+      
+      console.log("to", to)
+      console.log("from", from)
+
+      // MongoDB에 저장
+      const newMessage = new Message({
+        from: from._id,
+        to: to._id,
+        message: data.message,
+      });
+
+      await newMessage.save(); // 메시지 저장
+      console.log('Message saved to MongoDB');
+
+      const fromUser = {
+        email : from.email,
+        picture : from.picture
+      }
+
+      // JSON 형식으로 응답을 보냄
+      ws.send(JSON.stringify({ 
+        from: fromUser, 
+        message: data.message 
+      }));
+    } catch (error) {
+      console.error('Error parsing message or saving to MongoDB:', error);
+    }
+  });
+
+  ws.on('close', () => {
+    console.log('Client disconnected');
+  });
+});
+

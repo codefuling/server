@@ -17,7 +17,8 @@
     "passport-jwt": "^4.0.1",
     "passport-kakao": "^1.0.1",
     "passport-local": "^1.0.0",
-    "passport-naver-v2": "^2.0.8"
+    "passport-naver-v2": "^2.0.8",
+    "ws": "^8.18.0"
   },
   "type": "module"
 }

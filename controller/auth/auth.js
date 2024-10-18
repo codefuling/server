@@ -66,48 +66,4 @@ const jwtStrategy = async (req, res, next) => {
     }
 };
 
-
-// // 구글을 이용해서 인증받는 라우팅
-// const googleStrategy = async (req, res, next) => {
-//     try {
-//     // 인가가 완료된 유저 정보는 req.user에 담긴다.
-//         const googleAuthenticatedUser = req.user;
-//         console.log(googleAuthenticatedUser)
-
-//     } catch (error) {
-//         console.error(error);
-//         next(error);
-//     }
-// }
-
-
-
-// // 카카오를 이용해서 인증받는 라우팅
-// const kakaoStrategy = async (req, res, next) => {
-//     try {
-//     // 인가가 완료된 유저 정보는 req.user에 담긴다.
-//         const kakaoAuthenticatedUser = req.user;
-//         console.log(kakaoAuthenticatedUser)
-
-//     } catch (error) {
-//         console.error(error);
-//         next(error);
-//     }
-// }
-
-
-// // 네이버를 이용해서 인증받는 라우팅
-// const naverStrategy = async (req, res, next) => {
-//     try {
-//     // 인가가 완료된 유저 정보는 req.user에 담긴다.
-//         const naverAuthenticatedUser = req.user;
-//         console.log(naverAuthenticatedUser)
-
-//     } catch (error) {
-//         console.error(error);
-//         next(error);
-//     }
-// }
-
-
 export { localStrategy, jwtStrategy }

@@ -21,26 +21,36 @@ const passportConfig = {
 
 const passportVerify = async (email, password, done) => {
   try {
-		// 유저 아이디로 일치하는 유저 데이터 검색
-    // .lean() : 데이터를 자바스크립트 객체로 변환
+    // 유저 아이디로 일치하는 유저 데이터 검색
     const user = await User.findOne({ email: email }).lean();
-		// 검색된 유저 데이터가 없다면 에러 표시
+    // 검색된 유저 데이터가 없다면 에러 표시
     if (!user) {
+      console.log("로직실행")
       return done(null, false, { message: '존재하지 않는 사용자입니다.' });
     }
-		// 검색된 유저 데이터가 있다면 유저 해쉬된 비밀번호 비교 
-    const passwordMatch = password === user.password;
 
-		// 비밀번호가 다를경우 에러 표시
-    if (!passwordMatch) {
-      return done(null, false, { message: '올바르지 않은 비밀번호입니다.' });
-    }
-    // 비밀번호가 같다면 유저 데이터 객체 전송
-    return done(null, user);
-  
+    // 유저 해쉬된 비밀번호 비교
+    const plainPassword = password;
+    const hashedPassword = user.password;
+
+    bcrypt.compare(plainPassword, hashedPassword, (err, result) => {
+      if (err) {
+        // bcrypt 오류 발생 시 처리
+        return done(err); // bcrypt 에러가 있으면 done으로 전달
+      } 
+      
+      if (result) {
+        // 로그인 성공
+        return done(null, user);
+      } else {
+        // 비밀번호가 틀렸을 경우
+        return done(null, false, { message: '올바르지 않은 비밀번호입니다.' });
+      }
+    });
+
   } catch (error) {
     console.error(error);
-    done(error);
+    return done(error); // 내부 오류 발생 시 에러 전달
   }
 };
 
@@ -56,7 +66,8 @@ const JWTConfig = {
 const JWTVerify = async (jwtPayload, done) => {
   try {
 		// payload의 id값으로 유저의 데이터 조회
-    const user = await User.findOne({ email : jwtPayload.email } ).lean();
+    const email = jwtPayload.email;
+    const user = await User.findOne({ email : email }).lean();
 		
     // 유저 데이터가 없을 경우 에러 표시
     if (!user) {
@@ -80,32 +91,44 @@ const googleConfig = {
 
 const googleVerify =  async (accessToken, refreshToken, profile, done) => {
   console.log('google profile : ', profile);
+  const { id, emails, displayName, picture, provider } = profile;
   try {
     // 구글 플랫폼에서 로그인 했고 & snsId필드에 구글 아이디가 일치할경우
-     const exUser = await Sns.findOne({ snsId: profile.id, provider: 'google'}).lean();
+     const exUser = await User.findOne({ email : emails[0].value }).populate({
+        path: 'snsId', // 연관 컬럼
+        match: { 
+          email: emails[0].value,
+          provider: 'google'
+        }
+      }).lean();
+
+      console.log("exUser", exUser)
 
      // 이미 가입된 구글 프로필이면 성공
      if (exUser) {
         done(null, exUser); // 로그인 인증 완료
      } else {
-        // 가입되지 않는 유저면 회원가입 시키고 로그인을 시킨다
-        await Sns.create({
-          snsId : profile.id,
-          email : profile?.emails[0].value,
-          name : profile.displayName,
-          picture : profile.picture,
-          provider : profile.provider
-        })
-
-        const newUser = await Sns.findOne({ snsId: profile.id, provider: 'google'}).lean();
-        done(null, newUser); 
+      const createdSnsUser = await Sns.create({
+        snsId: id,
+        email: emails[0].value,
+        name: displayName,
+        picture: picture,
+        provider: provider
+      });
+    
+      // Sns에서 새로 생성한 사용자 정보를 가져옴
+      const newUser = await User.create({
+        email: createdSnsUser.email,
+        snsId: createdSnsUser._id, // Sns 스키마의 ID 사용
+      });
+    
+      done(null, newUser); 
      }
   } catch (error) {
      console.error(error);
      done(error);
   }
 };
-
 
 const kakaoConfig = {
   clientID: process.env.KAKAO_REST_API, // 카카오에서 발급받은 REST API 키
@@ -114,34 +137,7 @@ const kakaoConfig = {
 
 const kakaoVerify =  async (accessToken, refreshToken, profile, done) => {
   console.log('kakao profile : ', profile);
-  try {
-    // 카카오 플랫폼에서 로그인 했고 & snsId필드에 카카오 아이디가 일치할경우
-    const exUser = await Sns.findOne({ snsId: profile.id, provider: 'kakao'}).lean();
-
-     // 이미 가입된 구글 프로필이면 성공
-     if (exUser) {
-        done(null, exUser); // 로그인 인증 완료
-     } else {
-        // 가입되지 않는 유저면 회원가입 시키고 로그인을 시킨다
-
-        await Sns.create({
-          snsId : profile.id,
-          email : "test@test.com",
-          name : profile.displayName,
-          picture : profile._json.properties.profile_image,
-          provider : "kakao"
-        })
-
-        const newUser = await Sns.findOne({ snsId: profile.id, provider: 'kakao'}).lean();
-        done(null, newUser); 
-     }
-  } catch (error) {
-     console.error(error);
-     done(error);
-  }
 };
-
-
 
 // 네이버 
 const naverConfig = {
@@ -152,28 +148,38 @@ const naverConfig = {
 
 const naverVerify =  async (accessToken, refreshToken, profile, done) => {
   console.log('naver profile : ', profile);
+  const { id, email, nickname, profileImage, provider } = profile;
   try {
-    // 카카오 플랫폼에서 로그인 했고 & snsId필드에 카카오 아이디가 일치할경우
-    // const exUser = await Sns.findOne({ snsId: profile.id, provider: 'kakao'}).lean();
-    const exUser = {};
+    // 네이버 플랫폼에서 로그인 했고 & snsId필드에 구글 아이디가 일치할경우
+     const exUser = await User.findOne({ email : email }).populate({
+        path: 'snsId', // 연관 컬럼
+        match: { 
+          email: email,
+          provider: 'naver'
+        }
+      }).lean();
 
-     // 이미 가입된 구글 프로필이면 성공
+     // 이미 가입된 네이버 프로필이면 성공
      if (exUser) {
         done(null, exUser); // 로그인 인증 완료
      } else {
-        // 가입되지 않는 유저면 회원가입 시키고 로그인을 시킨다
 
-        // await Sns.create({
-        //   snsId : profile.id,
-        //   email : "test@test.com",
-        //   name : profile.displayName,
-        //   picture : profile._json.properties.profile_image,
-        //   provider : "kakao"
-        // })
-
-        // const newUser = await Sns.findOne({ snsId: profile.id, provider: 'kakao'}).lean();
-        const newUser = {};
-        done(null, newUser); 
+      // 아니라면 가입
+      const createdSnsUser = await Sns.create({
+        snsId: id,
+        email: email,
+        name: nickname,
+        picture: profileImage,
+        provider: provider
+      });
+    
+      // Sns에서 새로 생성한 사용자 정보를 가져옴
+      const newUser = await User.create({
+        email: createdSnsUser.email,
+        snsId: createdSnsUser._id, // Sns 스키마의 ID 사용
+      });
+    
+      done(null, newUser); 
      }
   } catch (error) {
      console.error(error);

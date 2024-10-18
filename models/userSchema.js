@@ -1,9 +1,9 @@
-import { Schema, model } from "mongoose";
+import mongoose, { Schema, model } from "mongoose";
 import { getCurrentTime } from "../utils/utils.js";
 
 const userSchema = new Schema({
     email: { type: String, required : true, unique : true },
-    password: { type: String, required : true},
+    password: { type: String },
     name: { type: String },
     age : { type : Number, default : 0 },
     phone : { type : String, default : "000-0000-0000"},
@@ -12,6 +12,7 @@ const userSchema = new Schema({
     token : { type: String }, // refresh 토큰을 저장한다.
     createdAt: { type: String, default: getCurrentTime },
     updatedAt: { type: String, default: getCurrentTime },
+    snsId : { type: mongoose.Schema.Types.ObjectId, ref: 'Sns' }, // SNS 참조
 });
 
 // model("객체명", 스키마, "컬렉션(테이블)명");
