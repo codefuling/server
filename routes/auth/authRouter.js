@@ -5,8 +5,6 @@ import { jwtStrategy, localStrategy } from "../../controller/auth/auth.js";
 const authRouter = express.Router();
 const clientUrl = "http://localhost:3000";
 
-// auth
-// passport 추가
 // passport 라우팅
 authRouter.post("/local", passport.authenticate('local', { session: false }), localStrategy)
 
@@ -14,46 +12,33 @@ authRouter.post("/local", passport.authenticate('local', { session: false }), lo
 authRouter.post("/jwt", passport.authenticate('jwt', { session: false }), jwtStrategy)
 
 // 구글 로그인
-authRouter.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-authRouter.get('/google/callback', passport.authenticate('google', { failureRedirect: clientUrl }), (req, res) => {
+authRouter.get('/google', passport.authenticate('google', { 
+    session: false, 
+    scope: ['profile', 'email'] 
+}));
+
+authRouter.get('/google/callback', passport.authenticate('google', { session: false, failureRedirect: clientUrl }), (req, res) => {
     console.log("구글 로그인 후 유저 정보", req.user)
-    return res.redirect(clientUrl + "/my");
+    const accessToken = req.user.accessToken;
+    return res.redirect(`${clientUrl}/my?accessToken=${accessToken}`);
 });
 
 // 카카오 로그인
 authRouter.get("/kakao", passport.authenticate('kakao', { session: false }))
 authRouter.get('/kakao/callback', passport.authenticate('kakao', { failureRedirect: clientUrl }), (req, res) => {
     console.log("카카오 로그인 후 유저 정보", req.user)
-    return res.redirect(clientUrl + "/my");
+    const accessToken = req.user.accessToken;
+    return res.redirect(`${clientUrl}/my?accessToken=${accessToken}`);
 });
 
 // 네이버 로그인
-// 카카오 로그인
-authRouter.get("/naver", passport.authenticate('naver', { authType: 'reprompt' }))
+authRouter.get("/naver", passport.authenticate('naver', { session: false, authType: 'reprompt' }))
 authRouter.get('/naver/callback', passport.authenticate('naver', { failureRedirect: clientUrl }), (req, res) => {
     console.log("네이버 로그인 후 유저 정보", req.user)
-    return res.redirect(clientUrl + "/my");
+    const accessToken = req.user.accessToken;
+    return res.redirect(`${clientUrl}/my?accessToken=${accessToken}`);
 });
 
-
-// sns로그인 후 session에 사용자가 존재할 때
-authRouter.get('/profile', (req, res) => {
-    console.log(req.isAuthenticated())
-    if (!req.isAuthenticated()) {
-        return res.redirect('/');
-    }
-    
-    // 로그인한 사용자의 정보를 전달
-    const {email, name} = req.user;
-    res.status(200).json({
-        user : {
-            email,
-            name
-        }, 
-        loginSuccess : true, // 상태 발급
-        message : "로그인 되었습니다." // 메세지
-    })
-});
 
 // 로그아웃 처리
 authRouter.get('/logout', (req, res) => {

@@ -5,6 +5,7 @@ import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { Strategy as KakaoStrategy } from 'passport-kakao';
 import { Strategy as NaverStrategy } from 'passport-naver-v2';
 
+import jwt from 'jsonwebtoken';
 import User from "../models/userSchema.js";
 import Sns from "../models/snsSchema.js";
 import dotenv from 'dotenv';
@@ -82,7 +83,6 @@ const JWTVerify = async (jwtPayload, done) => {
   }
 };
 
-
 const googleConfig = {
   clientID: process.env.GOOGLE_ID, // 구글 로그인에서 발급받은 REST API 키
   clientSecret: process.env.GOOGLE_SECRET,
@@ -92,17 +92,30 @@ const googleConfig = {
 const googleVerify =  async (accessToken, refreshToken, profile, done) => {
   console.log('google profile : ', profile);
   const { id, emails, displayName, picture, provider } = profile;
+  const email = emails[0].value;
   try {
     // 구글 플랫폼에서 로그인 했고 & snsId필드에 구글 아이디가 일치할경우
-     const exUser = await User.findOne({ email : emails[0].value }).populate({
+     const exUser = await User.findOne({ email : email }).populate({
         path: 'snsId', // 연관 컬럼
         match: { 
-          email: emails[0].value,
-          provider: 'google'
+          email: email,
+          provider: provider
         }
       }).lean();
-
       console.log("exUser", exUser)
+
+      const accessToken = jwt.sign(
+          { 
+              email: email, 
+              issuer : 'sehwan' 
+          },
+          SECRET_KEY,
+          {
+              expiresIn: '24h'    // 유효 시간 24시간 평균적으로 5분
+          }
+      );
+
+      exUser.accessToken = accessToken;
 
      // 이미 가입된 구글 프로필이면 성공
      if (exUser) {
@@ -122,6 +135,8 @@ const googleVerify =  async (accessToken, refreshToken, profile, done) => {
         snsId: createdSnsUser._id, // Sns 스키마의 ID 사용
       });
     
+      newUser.accessToken = accessToken;
+
       done(null, newUser); 
      }
   } catch (error) {
@@ -130,6 +145,8 @@ const googleVerify =  async (accessToken, refreshToken, profile, done) => {
   }
 };
 
+
+// 카카오
 const kakaoConfig = {
   clientID: process.env.KAKAO_REST_API, // 카카오에서 발급받은 REST API 키
   callbackURL: '/auth/kakao/callback', // 카카오에 적은 Redirect URI 경로
@@ -138,6 +155,7 @@ const kakaoConfig = {
 const kakaoVerify =  async (accessToken, refreshToken, profile, done) => {
   console.log('kakao profile : ', profile);
 };
+
 
 // 네이버 
 const naverConfig = {
@@ -159,6 +177,18 @@ const naverVerify =  async (accessToken, refreshToken, profile, done) => {
         }
       }).lean();
 
+      const accessToken = jwt.sign(
+        { 
+            email: email, 
+            issuer : 'sehwan' 
+        },
+        SECRET_KEY,
+        {
+            expiresIn: '24h'    // 유효 시간 24시간 평균적으로 5분
+        }
+    );
+    exUser.accessToken = accessToken;
+
      // 이미 가입된 네이버 프로필이면 성공
      if (exUser) {
         done(null, exUser); // 로그인 인증 완료
@@ -179,6 +209,7 @@ const naverVerify =  async (accessToken, refreshToken, profile, done) => {
         snsId: createdSnsUser._id, // Sns 스키마의 ID 사용
       });
     
+      newUser.accessToken = accessToken;
       done(null, newUser); 
      }
   } catch (error) {

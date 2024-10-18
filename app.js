@@ -25,7 +25,6 @@ dotenv.config()
 const app = express();
 const port = 8000;
 
-
 // 이미지 등록
 import multer from 'multer';
 import fs from 'fs';
@@ -35,7 +34,6 @@ import { fileURLToPath } from 'url';
 // ES Modules에서 __dirname 설정
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
 
 // passport
 import passport from "passport";
@@ -73,14 +71,6 @@ app.use(cors({
   method : ['GET', 'POST', 'DELETE', 'PUT'],
   credentials : true,
 }));
-
-// 구글 로그인 session 필요
-app.use(session({ 
-  secret : "SECRET_KEY",
-  resave: false,
-  saveUninitialized: true
-}))
-
 
 // 파일 이름 중복 처리 함수
 const uploadFolder = "uploads/profiles";
@@ -120,17 +110,25 @@ app.use(uploadMiddleware);
 
 // passport 미들웨어 등록
 app.use(passport.initialize())
-app.use(passport.session())
-
-passport.serializeUser((user, done) => {
-  done(null, user);
-});
-
-passport.deserializeUser((user, done) => {
-  done(null, user);
-});
-
 initializePassport()
+
+// 구글 로그인 session 사용시 필요한 코드
+// app.use(session({ 
+//   secret : "SECRET_KEY",
+//   resave: false,
+//   saveUninitialized: true
+// }))
+
+// app.use(passport.session())
+
+// passport.serializeUser((user, done) => {
+//   done(null, user);
+// });
+
+// passport.deserializeUser((user, done) => {
+//   done(null, user);
+// });
+
 
 // 부모 경로 (/products) 요청 시, 모듈화 해놓은 router로 이동시키기
 app.use("/", rootRouter);
