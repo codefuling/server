@@ -53,13 +53,13 @@ const loginUser = async (req, res) => {
 
 const registerUser = async (req, res) => {
     // 등록 전에 회원인지 확인한다.
-    const findUser = await User.findOne({email : req.body.email}).lean();
+    const foundUser = await User.findOne({email : req.body.email}).lean();
     // 만약 유저가 있다면, 회원가입을 할 수 없다.
-    if(findUser){
+    if(foundUser){
         // 중복 회원가입 요청이 발생했을 때 409 코드
         return res.status(409).json({
             registerSuccess : false,
-            message : "이미 존재하는 이메일 입니다."
+            message : `이미 존재하는 이메일 입니다. (${foundUser.provider})`
         })
     }else{
 

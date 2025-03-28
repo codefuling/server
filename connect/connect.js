@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-const connection_url = `mongodb://codefuling:1234@ac-5lgkwfr-shard-00-00.tydmd0u.mongodb.net:27017,ac-5lgkwfr-shard-00-01.tydmd0u.mongodb.net:27017,ac-5lgkwfr-shard-00-02.tydmd0u.mongodb.net:27017/?ssl=true&replicaSet=atlas-civzs2-shard-0&authSource=admin&retryWrites=true&w=majority&appName=Cluster-test`;
+const connection_url = `mongodb+srv://codefuling:1234@cluster-test.tydmd0u.mongodb.net/`;
 
 const connect = () => {
   if (process.env.NODE_ENV !== "production") {

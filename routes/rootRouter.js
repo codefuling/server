@@ -5,6 +5,7 @@ import todoRouter from "./todo/todoRouter.js";
 import userRouter from "./user/userRouter.js";
 import authRouter from "./auth/authRouter.js";
 import paymentRouter from "./payment/paymentRouter.js";
+import imagesRouter from "./images/imagesRouter.js";
 
 const rootRouter = express.Router();
 
@@ -14,5 +15,6 @@ rootRouter.use('/todo', todoRouter)
 rootRouter.use('/user', userRouter)
 rootRouter.use('/auth', authRouter)
 rootRouter.use('/payment', paymentRouter)
- 
+rootRouter.use('/images', imagesRouter)
+
 export default rootRouter;

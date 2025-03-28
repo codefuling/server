@@ -33,8 +33,6 @@ const localStrategy = async (req, res, next) => {
                     }
                 );
                 
-                console.log('authenticatedUser', authenticatedUser);
-
                 // user의 민감한 정보 제거
                 const {password, ...user} = authenticatedUser;
             // 토큰과 회원정보 반환

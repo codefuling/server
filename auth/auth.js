@@ -7,7 +7,6 @@ import { Strategy as NaverStrategy } from 'passport-naver-v2';
 
 import jwt from 'jsonwebtoken';
 import User from "../models/userSchema.js";
-import Sns from "../models/snsSchema.js";
 import dotenv from 'dotenv';
 import bcrypt from 'bcrypt';
 
@@ -95,15 +94,25 @@ const googleVerify =  async (accessToken, refreshToken, profile, done) => {
   const email = emails[0].value;
   try {
     // 구글 플랫폼에서 로그인 했고 & snsId필드에 구글 아이디가 일치할경우
-     const exUser = await User.findOne({ email : email }).populate({
-        path: 'snsId', // 연관 컬럼
-        match: { 
-          email: email,
-          provider: provider
-        }
-      }).lean();
+    // 메모리 재할당 let
+      let exUser = await User.findOne({ email : email }).lean();
       console.log("exUser", exUser)
+      
+      // 처음인 경우 회원가입
+      if(!exUser){
+        const newUser = await User.create({
+          email : email,
+          name : displayName,
+          picture: picture || "none_picture.jpg", // 기본 이미지 설정
+          picturePath: "default",
+          provider: provider, 
+        })
 
+        // 회원가입 후 다시 조회
+        exUser = await User.findOne({ email : email }).lean();
+      }  
+
+      // 토큰 발급
       const accessToken = jwt.sign(
           { 
               email: email, 
@@ -115,36 +124,17 @@ const googleVerify =  async (accessToken, refreshToken, profile, done) => {
           }
       );
 
+      // 토큰 추가
       exUser.accessToken = accessToken;
 
-     // 이미 가입된 구글 프로필이면 성공
-     if (exUser) {
-        done(null, exUser); // 로그인 인증 완료
-     } else {
-      const createdSnsUser = await Sns.create({
-        snsId: id,
-        email: emails[0].value,
-        name: displayName,
-        picture: picture,
-        provider: provider
-      });
-    
-      // Sns에서 새로 생성한 사용자 정보를 가져옴
-      const newUser = await User.create({
-        email: createdSnsUser.email,
-        snsId: createdSnsUser._id, // Sns 스키마의 ID 사용
-      });
-    
-      newUser.accessToken = accessToken;
+      // 이미 가입된 구글 프로필이면 성공
+      done(null, exUser); // 로그인 인증 완료
 
-      done(null, newUser); 
-     }
   } catch (error) {
-     console.error(error);
+     console.error(`${googleVerify} error`);
      done(error);
   }
 };
-
 
 // 카카오
 const kakaoConfig = {
@@ -153,9 +143,7 @@ const kakaoConfig = {
 };
 
 const kakaoVerify =  async (accessToken, refreshToken, profile, done) => {
-  console.log('kakao profile : ', profile);
 };
-
 
 // 네이버 
 const naverConfig = {
@@ -166,56 +154,6 @@ const naverConfig = {
 
 const naverVerify =  async (accessToken, refreshToken, profile, done) => {
   console.log('naver profile : ', profile);
-  const { id, email, nickname, profileImage, provider } = profile;
-  try {
-    // 네이버 플랫폼에서 로그인 했고 & snsId필드에 구글 아이디가 일치할경우
-     const exUser = await User.findOne({ email : email }).populate({
-        path: 'snsId', // 연관 컬럼
-        match: { 
-          email: email,
-          provider: 'naver'
-        }
-      }).lean();
-
-      const accessToken = jwt.sign(
-        { 
-            email: email, 
-            issuer : 'sehwan' 
-        },
-        SECRET_KEY,
-        {
-            expiresIn: '24h'    // 유효 시간 24시간 평균적으로 5분
-        }
-    );
-    exUser.accessToken = accessToken;
-
-     // 이미 가입된 네이버 프로필이면 성공
-     if (exUser) {
-        done(null, exUser); // 로그인 인증 완료
-     } else {
-
-      // 아니라면 가입
-      const createdSnsUser = await Sns.create({
-        snsId: id,
-        email: email,
-        name: nickname,
-        picture: profileImage,
-        provider: provider
-      });
-    
-      // Sns에서 새로 생성한 사용자 정보를 가져옴
-      const newUser = await User.create({
-        email: createdSnsUser.email,
-        snsId: createdSnsUser._id, // Sns 스키마의 ID 사용
-      });
-    
-      newUser.accessToken = accessToken;
-      done(null, newUser); 
-     }
-  } catch (error) {
-     console.error(error);
-     done(error);
-  }
 };
 
 const initializePassport = () => {
