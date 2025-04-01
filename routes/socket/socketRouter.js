@@ -13,6 +13,9 @@ const socketRouter = (io) => {
     // 메시지 수신 (모든 사용자에게 메시지 보내기)
     socket.on("sendMessage", (message) => {
         console.log("모든 사용자에게 메시지 보내기:", message);
+        // 스키마에 저장 후 전송
+
+
         io.emit("receiveMessage", message);  // 모든 사용자에게 메시지 전송
     });
   
